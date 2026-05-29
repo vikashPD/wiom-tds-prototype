@@ -150,17 +150,86 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════
-   PHONE FRAME — simulates the Android device viewport
+   PHONE + DECISIONS — side by side layout
    ═══════════════════════════════════════════════════════ */
+
+.phone-decisions-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 32px;
+  justify-content: center;
+}
+
+/* ═══════════════════════════════════════════════════════
+   PHONE FRAME — realistic device shell with notch
+   ═══════════════════════════════════════════════════════ */
+
+.phone-shell {
+  flex-shrink: 0;
+  width: 390px;
+  height: 780px;
+  background: #1a1a2e;
+  border-radius: 44px;
+  padding: 12px;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.25), inset 0 0 0 2px #333;
+  position: relative;
+}
+
+/* Notch / dynamic island */
+.phone-shell::before {
+  content: '';
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100px;
+  height: 28px;
+  background: #1a1a2e;
+  border-radius: 14px;
+  z-index: 10;
+}
+
+/* Home indicator bar */
+.phone-shell::after {
+  content: '';
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 4px;
+  background: #555;
+  border-radius: 2px;
+  z-index: 10;
+}
 
 .phone-frame {
   width: 100%;
-  min-height: 700px;
+  height: 100%;
   background: var(--bg-screen);
-  border-radius: 24px;
+  border-radius: 34px;
   overflow: hidden;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
-  margin: 0 auto var(--xxl);
+  display: flex;
+  flex-direction: column;
+}
+
+.phone-frame .phone-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Custom scrollbar inside phone */
+.phone-scroll::-webkit-scrollbar {
+  width: 3px;
+}
+.phone-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.phone-scroll::-webkit-scrollbar-thumb {
+  background: var(--text-hint);
+  border-radius: 3px;
 }
 
 /* ── Top bar — ModuleHeader (brand-primary bg) ── */
@@ -829,23 +898,24 @@ body {
   font-weight: 600;
 }
 
-/* The screen body becomes a two-column layout */
-.screen-body-wrapper {
-  display: flex;
-  align-items: flex-start;
-  gap: 0;
-}
-.screen-body-wrapper .screen-body {
-  flex: 0 0 375px;
-  min-width: 375px;
-}
-.screen-body-wrapper .decisions-col {
+/* Decisions column — sits beside the phone */
+.decisions-col {
   flex: 1;
-  min-width: 260px;
-  padding: var(--lg) var(--lg) var(--lg) 0;
+  min-width: 280px;
+  max-width: 380px;
   display: flex;
   flex-direction: column;
   gap: var(--lg);
+  max-height: 780px;
+  overflow-y: auto;
+  padding-right: var(--sm);
+}
+.decisions-col::-webkit-scrollbar {
+  width: 3px;
+}
+.decisions-col::-webkit-scrollbar-thumb {
+  background: var(--stroke-primary);
+  border-radius: 3px;
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -853,20 +923,18 @@ body {
    ═══════════════════════════════════════════════════════ */
 
 @media (max-width: 900px) {
-  .screen-body-wrapper {
+  .phone-decisions-row {
     flex-direction: column;
+    align-items: center;
   }
-  .screen-body-wrapper .screen-body {
-    flex: 1;
-    min-width: auto;
+  .phone-shell {
     width: 100%;
+    max-width: 390px;
   }
-  .screen-body-wrapper .decisions-col {
-    padding: var(--lg);
-  }
-  .phone-frame {
-    width: 100%;
-    border-radius: 16px;
+  .decisions-col {
+    max-width: 100%;
+    max-height: none;
+    overflow-y: visible;
   }
 }
 </style>
@@ -902,6 +970,9 @@ body {
       Scenario: T-1 Normal payout with TDS — Individual CSP, §194C at 1%
     </div>
 
+    <div class="phone-decisions-row">
+
+    <div class="phone-shell">
     <div class="phone-frame">
       <!-- Top Bar -->
       <div class="top-bar">
@@ -910,7 +981,7 @@ body {
         <span class="debug-icon">🐛</span>
       </div>
 
-      <div class="screen-body-wrapper">
+      <div class="phone-scroll">
       <div class="screen-body">
         <!-- ═══ Wallet Balance Card ═══ -->
         <div class="wallet-card">
@@ -1121,50 +1192,15 @@ body {
 
       </div><!-- end screen-body -->
 
-      <!-- ═══ Design Decisions Column (right side) ═══ -->
-      <div class="decisions-col">
+      </div><!-- end phone-scroll -->
 
-        <div class="annotation">
-          <div class="a-header"><span class="a-badge">1</span><span class="a-spec">§8C Rule 3 + §4</span></div>
-          <div class="a-text"><strong>Wallet Balance</strong> — Shows GROSS credits accumulated during the 15-day cycle. No TDS deducted on real-time entries (Rule 5: "₹35 credited. Period."). TDS is cycle-level, deducted only at bonus cycle end (§4).</div>
-        </div>
-
-        <div class="annotation">
-          <div class="a-header"><span class="a-badge">2</span><span class="a-spec">§8A</span></div>
-          <div class="a-text"><strong>Running TDS Estimate</strong> — "Light, non-intrusive indicator." Shows rate + estimated amount + section reference. Uses "अनुमानित" (estimated) clearly. Background changes per scenario: <strong>purple</strong> = normal, <strong>yellow</strong> = warning (no PAN / no payout), <strong>grey</strong> = below threshold, <strong>green</strong> = §197 override. Disappears after cycle close.</div>
-        </div>
-
-        <div class="annotation">
-          <div class="a-header"><span class="a-badge">3</span><span class="a-spec">§8C Rules 1 & 5</span></div>
-          <div class="a-text"><strong>Recent Activity</strong> — Shows GROSS amounts only. Rule 1: "NEVER show TDS as a separate transaction entry — '+₹3,600' then '-₹72 TDS' = punishment feeling." Rule 5: "NEVER show TDS on real-time credits." TDS only visible in Payout Summary card.</div>
-        </div>
-
-        <div class="annotation">
-          <div class="a-header"><span class="a-badge">4</span><span class="a-spec">§8B + §3 Pipeline</span></div>
-          <div class="a-text"><strong>Payout Summary</strong> — ONE card per cycle. Expand/collapse like WalletCard. Breakdown follows pipeline: Gross → Adjustments → Net Payable → TDS → Net Credited. TDS on its own line with section ref (Rule 4). Hindi explainer: "TDS सरकार को जमा होता है" — it's government, not Wiom. No-PAN: yellow warning (Edge 3). Below threshold: "₹0 सालाना सीमा से कम" (§8E).</div>
-        </div>
-
-        <div class="annotation">
-          <div class="a-header"><span class="a-badge">5</span><span class="a-spec">§8D</span></div>
-          <div class="a-text"><strong>Tax Summary Link</strong> — Opens annual FY overview, Form 16A download, quarterly breakdown, tax profile. Spec says: "Profile → Tax / Documents. Not in wallet feed." Added here for quick access. Card-style row per user feedback.</div>
-        </div>
-
-        <div class="annotation">
-          <div class="a-header"><span class="a-badge">6</span><span class="a-spec">§8C Rule 2</span></div>
-          <div class="a-text"><strong>Language & Wording</strong> — NEVER use "charge" or "fee" or "Wiom deduction" for TDS. It's statutory — government mandates it. All labels use "वैधानिक कर कटौती" (statutory tax deduction). Section number always visible: "CSP's CA will ask. Show it."</div>
-        </div>
-
-      </div><!-- end decisions-col -->
-
-      </div><!-- end screen-body-wrapper -->
-
-      <!-- ═══ Tax Summary Screen (overlays wallet home) ═══ -->
+      <!-- ═══ Tax Summary Screen (overlays inside phone) ═══ -->
       <div id="tax-summary-screen" class="tax-summary-screen">
         <div class="top-bar">
           <span class="back-arrow" onclick="hideTaxSummary()" style="cursor:pointer;">←</span>
           <span class="title">टैक्स सारांश</span>
         </div>
-
+        <div class="phone-scroll">
         <div class="screen-body">
           <!-- FY Overview Card -->
           <div class="wallet-card">
@@ -1257,9 +1293,41 @@ body {
             </div>
           </div>
         </div>
+        </div><!-- end phone-scroll for tax summary -->
       </div><!-- end tax-summary-screen -->
 
     </div><!-- end phone-frame -->
+    </div><!-- end phone-shell -->
+
+    <!-- ═══ Design Decisions Column (right side, outside phone) ═══ -->
+    <div class="decisions-col">
+      <div class="annotation">
+        <div class="a-header"><span class="a-badge">1</span><span class="a-spec">§8C Rule 3 + §4</span></div>
+        <div class="a-text"><strong>Wallet Balance</strong> — Shows GROSS credits accumulated during the 15-day cycle. No TDS deducted on real-time entries (Rule 5: "₹35 credited. Period."). TDS is cycle-level, deducted only at bonus cycle end (§4).</div>
+      </div>
+      <div class="annotation">
+        <div class="a-header"><span class="a-badge">2</span><span class="a-spec">§8A</span></div>
+        <div class="a-text"><strong>Running TDS Estimate</strong> — "Light, non-intrusive indicator." Shows rate + estimated amount + section reference. Uses "अनुमानित" (estimated) clearly. Background changes per scenario: <strong>purple</strong> = normal, <strong>yellow</strong> = warning (no PAN / no payout), <strong>grey</strong> = below threshold, <strong>green</strong> = §197 override.</div>
+      </div>
+      <div class="annotation">
+        <div class="a-header"><span class="a-badge">3</span><span class="a-spec">§8C Rules 1 & 5</span></div>
+        <div class="a-text"><strong>Recent Activity</strong> — Shows GROSS amounts only. Rule 1: "NEVER show TDS as a separate transaction entry." Rule 5: "NEVER show TDS on real-time credits. ₹35 credited. Period." TDS only visible in Payout Summary card.</div>
+      </div>
+      <div class="annotation">
+        <div class="a-header"><span class="a-badge">4</span><span class="a-spec">§8B + §3 Pipeline</span></div>
+        <div class="a-text"><strong>Payout Summary</strong> — ONE card per cycle. Expand/collapse. Breakdown follows pipeline: Gross → Adjustments → Net Payable → TDS → Net Credited. TDS on its own line with section ref (Rule 4). Hindi explainer: "TDS सरकार को जमा होता है." No-PAN: yellow warning (Edge 3). Below threshold: "₹0 सालाना सीमा से कम" (§8E).</div>
+      </div>
+      <div class="annotation">
+        <div class="a-header"><span class="a-badge">5</span><span class="a-spec">§8D</span></div>
+        <div class="a-text"><strong>Tax Summary Link</strong> — Opens annual FY overview, Form 16A download, quarterly breakdown, tax profile. Spec: "Profile → Tax / Documents." Card-style row per user feedback.</div>
+      </div>
+      <div class="annotation">
+        <div class="a-header"><span class="a-badge">6</span><span class="a-spec">§8C Rule 2</span></div>
+        <div class="a-text"><strong>Language & Wording</strong> — NEVER use "charge" or "fee" or "Wiom deduction." It's statutory. All labels use "वैधानिक कर कटौती." Section number always visible: "CSP's CA will ask. Show it."</div>
+      </div>
+    </div><!-- end decisions-col -->
+
+    </div><!-- end phone-decisions-row -->
   </div>
 
   <!-- ═══════════════════════════════════════════════════
@@ -1887,14 +1955,17 @@ let payoutExpanded = false;
 
 // ── Tax Summary Screen ──
 function showTaxSummary() {
-  document.querySelector('.screen-body-wrapper').style.display = 'none';
+  // Hide the wallet top-bar and scrollable content
   document.querySelector('.phone-frame > .top-bar').style.display = 'none';
+  document.querySelector('.phone-frame > .phone-scroll').style.display = 'none';
+  // Show the tax summary screen
   document.getElementById('tax-summary-screen').classList.add('visible');
 }
 
 function hideTaxSummary() {
-  document.querySelector('.screen-body-wrapper').style.display = '';
+  // Restore the wallet view
   document.querySelector('.phone-frame > .top-bar').style.display = '';
+  document.querySelector('.phone-frame > .phone-scroll').style.display = '';
   document.getElementById('tax-summary-screen').classList.remove('visible');
 }
 
