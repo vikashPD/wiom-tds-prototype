@@ -1,0 +1,2069 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TDS/TCS Prototype — Wiom CSP Wallet</title>
+<style>
+/* ═══════════════════════════════════════════════════════
+   WIOM DESIGN TOKENS — from WiomTokens.kt
+   Every value here maps 1:1 to the Kotlin source:
+   core/common/theme/WiomTokens.kt
+   ═══════════════════════════════════════════════════════ */
+
+:root {
+  /* Colors — WiomColors */
+  --brand-primary: #D9008D;
+  --text-primary: #161021;
+  --text-secondary: #5C5570;
+  --text-hint: #A7A1B2;
+  --text-inverse: #FFFFFF;
+  --bg-screen: #FAF9FC;
+  --bg-surface: #FFFFFF;
+  --bg-subtle: #F1EDF7;
+  --bg-secondary: #EEEAF4;
+  --bg-warning: #FFF2BF;
+  --bg-positive: #D4EDDA;
+  --bg-negative: #F8D7DA;
+  --bg-info: #D1ECF1;
+  --state-positive: #008043;
+  --state-negative: #D92130;
+  --state-warning: #B85C00;
+  --state-pending: #B85C00;
+  --stroke-primary: #E8E4F0;
+
+  /* Typography — WiomTextStyle */
+  --font-family: 'Noto Sans Devanagari', 'Noto Sans', system-ui, sans-serif;
+  --hero-amount: 700 28px/1.2 var(--font-family);
+  --title-sm: 700 16px/1.3 var(--font-family);
+  --card-identity: 600 14px/1.4 var(--font-family);
+  --body: 400 14px/1.5 var(--font-family);
+  --body-small: 400 12px/1.5 var(--font-family);
+  --meta-xs: 400 10px/1.4 var(--font-family);
+  --cta-secondary: 600 14px/1.4 var(--font-family);
+
+  /* Spacing — WiomSpacing */
+  --xxs: 4px;
+  --xs: 4px;
+  --sm: 8px;
+  --md: 12px;
+  --lg: 16px;
+  --xl: 16px;
+  --xxl: 24px;
+  --card-padding: 16px;
+
+  /* Radius — WiomRadius */
+  --radius-card: 12px;
+  --radius-chip: 8px;
+
+  /* Elevation — WiomElevation */
+  --card-border-width: 1px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600;700&family=Noto+Sans:wght@400;600;700&display=swap');
+
+body {
+  font-family: var(--font-family);
+  background: #f0eef5;
+  color: var(--text-primary);
+  min-height: 100vh;
+}
+
+/* ═══════════════════════════════════════════════════════
+   LAYOUT
+   ═══════════════════════════════════════════════════════ */
+
+.page-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--lg);
+}
+
+.page-title {
+  font: var(--title-sm);
+  font-size: 20px;
+  color: var(--text-primary);
+  margin-bottom: var(--sm);
+}
+
+.page-subtitle {
+  font: var(--body-small);
+  color: var(--text-secondary);
+  margin-bottom: var(--xxl);
+}
+
+/* ── Tabs ── */
+.tab-bar {
+  display: flex;
+  gap: var(--sm);
+  margin-bottom: var(--xxl);
+  border-bottom: 1px solid var(--stroke-primary);
+  padding-bottom: 0;
+}
+.tab-btn {
+  font: var(--card-identity);
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  padding: var(--sm) var(--lg);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all 0.15s;
+}
+.tab-btn.active {
+  color: var(--brand-primary);
+  border-bottom-color: var(--brand-primary);
+}
+.tab-btn:hover { color: var(--text-primary); }
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── Scenario Chips ── */
+.chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sm);
+  margin-bottom: var(--xxl);
+}
+.chip {
+  font: var(--body-small);
+  color: var(--text-secondary);
+  background: var(--bg-surface);
+  border: var(--card-border-width) solid var(--stroke-primary);
+  border-radius: var(--radius-chip);
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.chip.active {
+  background: var(--brand-primary);
+  color: var(--text-inverse);
+  border-color: var(--brand-primary);
+}
+.chip:hover:not(.active) {
+  border-color: var(--text-hint);
+}
+
+/* ═══════════════════════════════════════════════════════
+   PHONE FRAME — simulates the Android device viewport
+   ═══════════════════════════════════════════════════════ */
+
+.phone-frame {
+  width: 100%;
+  min-height: 700px;
+  background: var(--bg-screen);
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  margin: 0 auto var(--xxl);
+}
+
+/* ── Top bar — ModuleHeader (brand-primary bg) ── */
+.top-bar {
+  background: var(--brand-primary);
+  color: var(--text-inverse);
+  padding: 14px var(--lg);
+  display: flex;
+  align-items: center;
+  gap: var(--sm);
+}
+.top-bar .back-arrow {
+  font-size: 20px;
+  opacity: 0.9;
+}
+.top-bar .title {
+  font: var(--title-sm);
+  color: var(--text-inverse);
+  flex: 1;
+}
+.top-bar .debug-icon {
+  font-size: 18px;
+  opacity: 0.7;
+}
+
+/* ── Screen body ── */
+.screen-body {
+  padding: var(--lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--lg);
+}
+
+/* ═══════════════════════════════════════════════════════
+   WALLET CARD — from WalletComponents.kt WalletCard()
+   White surface + 1dp stroke border + 12dp radius + 16dp padding
+   ═══════════════════════════════════════════════════════ */
+
+.wallet-card {
+  background: var(--bg-surface);
+  border: var(--card-border-width) solid var(--stroke-primary);
+  border-radius: var(--radius-card);
+  padding: var(--card-padding);
+}
+
+/* ── Card Header — CardHeader() composable ── */
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sm);
+}
+.card-header .icon {
+  width: 20px;
+  height: 20px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+.card-header .card-title {
+  font: var(--title-sm);
+  color: var(--text-primary);
+  flex: 1;
+}
+.card-header .trailing {
+  font: var(--body);
+  color: var(--text-primary);
+}
+
+/* ── Wallet Hero (balance card) ── */
+.wallet-hero {
+  text-align: center;
+  padding: var(--lg) 0;
+}
+.wallet-hero .label-row {
+  display: flex;
+  align-items: center;
+  gap: var(--xs);
+  margin-bottom: var(--lg);
+}
+.wallet-hero .label-row .icon { color: var(--text-primary); }
+.wallet-hero .label-row .text {
+  font: var(--title-sm);
+  color: var(--text-primary);
+}
+.wallet-hero .amount {
+  font: var(--hero-amount);
+  color: var(--text-primary);
+}
+.wallet-hero .amount.negative { color: var(--state-negative); }
+.wallet-hero .sub-label {
+  font: var(--body-small);
+  color: var(--text-secondary);
+  margin-top: var(--xxs);
+}
+.wallet-hero .cta-btn {
+  display: block;
+  width: 100%;
+  margin-top: var(--xxl);
+  padding: 14px;
+  font: var(--title-sm);
+  color: var(--text-inverse);
+  background: var(--brand-primary);
+  border: none;
+  border-radius: var(--radius-card);
+  cursor: default;
+}
+
+/* ═══════════════════════════════════════════════════════
+   RUNNING TDS ESTIMATE — RunningTdsEstimate() in TdsComponents.kt
+   Spec §8A: light, non-intrusive indicator
+   bgSubtle background + chip radius + md/sm padding
+   ═══════════════════════════════════════════════════════ */
+
+.tds-estimate {
+  background: var(--bg-subtle);
+  border-radius: var(--radius-chip);
+  padding: var(--sm) var(--md);
+  transition: background 0.2s;
+}
+.tds-estimate.bg-warning {
+  background: var(--bg-warning);
+}
+.tds-estimate.bg-positive {
+  background: var(--bg-positive);
+}
+.tds-estimate.bg-threshold {
+  background: var(--bg-secondary);
+}
+.tds-estimate .est-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.tds-estimate .est-label {
+  display: flex;
+  align-items: center;
+  gap: var(--xs);
+  font: var(--body-small);
+  color: var(--text-secondary);
+}
+.tds-estimate .est-label .info-icon {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+.tds-estimate .est-value {
+  font: var(--body-small);
+  color: var(--text-secondary);
+}
+.tds-estimate .est-disclaimer {
+  font: var(--meta-xs);
+  color: var(--text-hint);
+  margin-top: var(--xs);
+}
+
+/* ═══════════════════════════════════════════════════════
+   PAYOUT SUMMARY CARD — PayoutSummaryCard() in TdsComponents.kt
+   Spec §8B: One card per cycle with full breakdown
+   Uses WalletCard wrapper + expand/collapse
+   ═══════════════════════════════════════════════════════ */
+
+.payout-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sm);
+  cursor: pointer;
+  user-select: none;
+}
+.payout-header .icon {
+  width: 20px;
+  height: 20px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+.payout-header .titles {
+  flex: 1;
+}
+.payout-header .titles .main-title {
+  font: var(--title-sm);
+  color: var(--text-primary);
+}
+.payout-header .titles .sub-title {
+  font: var(--body-small);
+  color: var(--text-secondary);
+  margin-top: var(--xxs);
+}
+.payout-header .amount {
+  font: var(--card-identity);
+  color: var(--state-positive);
+}
+.payout-header .amount.no-payout {
+  font: var(--body-small);
+  color: var(--text-secondary);
+}
+.payout-header .chevron {
+  color: var(--text-hint);
+  font-size: 20px;
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+.payout-header .chevron.open { transform: rotate(180deg); }
+
+.payout-detail {
+  display: none;
+  margin-top: var(--md);
+  border-top: var(--card-border-width) solid var(--stroke-primary);
+  padding-top: var(--md);
+}
+.payout-detail.open { display: block; }
+
+.section-label {
+  font: var(--body-small);
+  color: var(--text-secondary);
+  margin-bottom: var(--sm);
+}
+
+.line-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--xxs) 0;
+}
+.line-item .label {
+  font: var(--body);
+  color: var(--text-secondary);
+  flex: 1;
+}
+.line-item .label.bold {
+  font: var(--card-identity);
+}
+.line-item .value {
+  font: var(--body);
+  color: var(--text-primary);
+}
+.line-item .value.deduction { color: var(--state-negative); }
+.line-item .value.bold {
+  font: var(--card-identity);
+}
+
+.subtotal {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: var(--xs);
+}
+.subtotal .value {
+  font: var(--card-identity);
+  color: var(--text-primary);
+}
+.subtotal .value.deduction { color: var(--state-negative); }
+
+.payout-divider {
+  border: none;
+  border-top: var(--card-border-width) solid var(--stroke-primary);
+  margin: var(--sm) 0;
+}
+
+.net-credited-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.net-credited-row .label {
+  font: var(--title-sm);
+  color: var(--text-primary);
+}
+.net-credited-row .value {
+  font: var(--title-sm);
+  color: var(--state-positive);
+}
+
+.statutory-explainer {
+  font: var(--meta-xs);
+  color: var(--text-hint);
+  margin-top: var(--md);
+}
+
+/* ── No-PAN Warning Strip ── */
+.no-pan-warning {
+  display: flex;
+  align-items: center;
+  gap: var(--xs);
+  background: var(--bg-warning);
+  border-radius: var(--radius-chip);
+  padding: var(--sm) var(--md);
+  margin-top: var(--sm);
+}
+.no-pan-warning .icon {
+  color: var(--state-warning);
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.no-pan-warning .text {
+  font: var(--body-small);
+  color: var(--text-primary);
+  flex: 1;
+}
+
+/* ── Below Threshold State ── */
+.below-threshold {
+  font: var(--body-small);
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* ═══════════════════════════════════════════════════════
+   TAX SUMMARY LINK — card-style nav row
+   Spec §8D: Annual tax summary link
+   ═══════════════════════════════════════════════════════ */
+
+.tax-summary-link {
+  display: flex;
+  align-items: center;
+  gap: var(--sm);
+  min-height: 48px;
+  cursor: pointer;
+}
+.tax-summary-link .icon {
+  color: var(--text-secondary);
+  font-size: 18px;
+}
+.tax-summary-link .text {
+  font: var(--title-sm);
+  color: var(--text-primary);
+  flex: 1;
+}
+.tax-summary-link .arrow {
+  font: var(--title-sm);
+  color: var(--text-secondary);
+}
+
+/* ═══════════════════════════════════════════════════════
+   TAX SUMMARY SCREEN — TaxSummaryScreen.kt
+   Spec §8D: Annual tax summary
+   ═══════════════════════════════════════════════════════ */
+
+.tax-summary-screen {
+  display: none;
+}
+.tax-summary-screen.visible {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+.tax-summary-screen .screen-body {
+  flex: 1;
+}
+
+.tax-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--xs) 0;
+}
+.tax-row .label {
+  font: var(--body);
+  color: var(--text-secondary);
+  flex: 1;
+}
+.tax-row .value {
+  font: var(--card-identity);
+  color: var(--text-primary);
+}
+.tax-row .value.negative {
+  color: var(--state-negative);
+}
+
+.form16a-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sm);
+  width: 100%;
+  padding: 12px;
+  font: var(--card-identity);
+  color: var(--brand-primary);
+  background: var(--bg-surface);
+  border: var(--card-border-width) solid var(--brand-primary);
+  border-radius: var(--radius-card);
+  cursor: pointer;
+}
+.form16a-btn:hover {
+  background: var(--bg-subtle);
+}
+
+.quarter-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--sm) 0;
+}
+.quarter-row .label {
+  font: var(--body);
+  color: var(--text-secondary);
+}
+.quarter-row .value {
+  font: var(--card-identity);
+  color: var(--text-primary);
+}
+.quarter-divider {
+  border: none;
+  border-top: var(--card-border-width) solid var(--stroke-primary);
+  margin: 0;
+}
+
+/* ── Recent Activity placeholder ── */
+.recent-activity .tx-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: var(--lg) 0;
+  border-bottom: var(--card-border-width) solid var(--stroke-primary);
+}
+.recent-activity .tx-row:last-child { border-bottom: none; }
+.recent-activity .tx-label {
+  font: var(--card-identity);
+  color: var(--text-primary);
+}
+.recent-activity .tx-time {
+  font: var(--body-small);
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+.recent-activity .tx-amount {
+  font: var(--card-identity);
+}
+.recent-activity .tx-amount.credit { color: var(--state-positive); }
+.recent-activity .tx-amount.debit { color: var(--state-negative); }
+
+/* ── Nav Footer — NavFooter() composable ── */
+.nav-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  min-height: 48px;
+  border-top: var(--card-border-width) solid var(--stroke-primary);
+  padding-top: var(--sm);
+  margin-top: var(--sm);
+}
+.nav-footer .link {
+  font: var(--cta-secondary);
+  color: var(--brand-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--xs);
+}
+
+/* ═══════════════════════════════════════════════════════
+   DEPOSIT / BANK CARD — simplified placeholders
+   ═══════════════════════════════════════════════════════ */
+
+.kv-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--xs) 0;
+}
+.kv-row .label {
+  font: var(--body);
+  color: var(--text-secondary);
+}
+.kv-row .value {
+  font: var(--card-identity);
+  color: var(--text-primary);
+}
+
+.bank-info {
+  display: flex;
+  gap: var(--md);
+}
+.bank-info .details {
+  flex: 1;
+}
+.bank-info .bank-name {
+  font: var(--card-identity);
+  color: var(--text-primary);
+}
+.bank-info .account-num {
+  font: var(--card-identity);
+  color: var(--text-primary);
+  margin-top: var(--xs);
+}
+.bank-info .holder-name {
+  font: var(--body-small);
+  color: var(--text-secondary);
+  margin-top: var(--xs);
+}
+.bank-status {
+  font: var(--body-small);
+  font-weight: 600;
+  color: var(--state-positive);
+  background: var(--bg-positive);
+  border-radius: var(--radius-chip);
+  padding: var(--xs) var(--sm);
+  align-self: flex-start;
+}
+
+/* ═══════════════════════════════════════════════════════
+   DECISION DOCUMENTATION TAB
+   ═══════════════════════════════════════════════════════ */
+
+.doc-section {
+  margin-bottom: var(--xxl);
+}
+.doc-section h3 {
+  font: var(--title-sm);
+  font-size: 18px;
+  color: var(--text-primary);
+  margin-bottom: var(--md);
+  padding-bottom: var(--sm);
+  border-bottom: 2px solid var(--brand-primary);
+}
+.doc-section h4 {
+  font: var(--title-sm);
+  color: var(--text-primary);
+  margin: var(--lg) 0 var(--sm);
+}
+
+.decision-card {
+  background: var(--bg-surface);
+  border: var(--card-border-width) solid var(--stroke-primary);
+  border-radius: var(--radius-card);
+  padding: var(--card-padding);
+  margin-bottom: var(--md);
+}
+.decision-card .d-title {
+  font: var(--card-identity);
+  color: var(--brand-primary);
+  margin-bottom: var(--sm);
+}
+.decision-card .d-spec {
+  font: var(--body-small);
+  color: var(--text-hint);
+  margin-bottom: var(--sm);
+  padding: var(--xs) var(--sm);
+  background: var(--bg-subtle);
+  border-radius: var(--radius-chip);
+  display: inline-block;
+}
+.decision-card .d-body {
+  font: var(--body);
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+.decision-card .d-body strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.spec-quote {
+  background: var(--bg-subtle);
+  border-left: 3px solid var(--brand-primary);
+  padding: var(--md) var(--lg);
+  margin: var(--sm) 0;
+  font: var(--body-small);
+  color: var(--text-secondary);
+  border-radius: 0 var(--radius-chip) var(--radius-chip) 0;
+}
+
+.edge-case-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: var(--sm);
+  font: var(--body-small);
+}
+.edge-case-table th {
+  background: var(--bg-subtle);
+  font: var(--card-identity);
+  color: var(--text-primary);
+  text-align: left;
+  padding: var(--sm) var(--md);
+  border: var(--card-border-width) solid var(--stroke-primary);
+}
+.edge-case-table td {
+  padding: var(--sm) var(--md);
+  border: var(--card-border-width) solid var(--stroke-primary);
+  color: var(--text-secondary);
+  vertical-align: top;
+}
+
+.pipeline-step {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--md);
+  margin-bottom: var(--md);
+}
+.pipeline-step .step-num {
+  width: 28px;
+  height: 28px;
+  background: var(--brand-primary);
+  color: var(--text-inverse);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: var(--card-identity);
+  flex-shrink: 0;
+}
+.pipeline-step .step-body {
+  flex: 1;
+}
+.pipeline-step .step-title {
+  font: var(--card-identity);
+  color: var(--text-primary);
+}
+.pipeline-step .step-desc {
+  font: var(--body-small);
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════
+   SIDE-BY-SIDE LAYOUT — card on left, decision on right
+   ═══════════════════════════════════════════════════════ */
+
+.card-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--lg);
+}
+.card-row .card-col {
+  flex: 0 0 auto;
+  width: 100%; /* takes full width inside screen-body */
+}
+.card-row .annotation {
+  flex: 0 0 280px;
+  position: relative;
+}
+
+/* Annotation card — always visible, sits beside the UI card */
+.annotation {
+  background: #FDF6FF;
+  border: var(--card-border-width) solid #E8D5F0;
+  border-left: 3px solid var(--brand-primary);
+  border-radius: 0 var(--radius-card) var(--radius-card) 0;
+  padding: var(--md);
+}
+.annotation .a-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sm);
+  margin-bottom: var(--sm);
+}
+.annotation .a-badge {
+  width: 22px;
+  height: 22px;
+  background: var(--brand-primary);
+  color: var(--text-inverse);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 600 11px/1 var(--font-family);
+  flex-shrink: 0;
+}
+.annotation .a-spec {
+  font: var(--body-small);
+  color: var(--brand-primary);
+  font-weight: 600;
+}
+.annotation .a-text {
+  font: var(--body-small);
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+.annotation .a-text strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* The screen body becomes a two-column layout */
+.screen-body-wrapper {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+}
+.screen-body-wrapper .screen-body {
+  flex: 0 0 375px;
+  min-width: 375px;
+}
+.screen-body-wrapper .decisions-col {
+  flex: 1;
+  min-width: 260px;
+  padding: var(--lg) var(--lg) var(--lg) 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--lg);
+}
+
+/* ═══════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════ */
+
+@media (max-width: 900px) {
+  .screen-body-wrapper {
+    flex-direction: column;
+  }
+  .screen-body-wrapper .screen-body {
+    flex: 1;
+    min-width: auto;
+    width: 100%;
+  }
+  .screen-body-wrapper .decisions-col {
+    padding: var(--lg);
+  }
+  .phone-frame {
+    width: 100%;
+    border-radius: 16px;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="page-container">
+  <h1 class="page-title">TDS/TCS Statutory Deduction — Wallet Prototype</h1>
+  <p class="page-subtitle">Interactive prototype matching the APK design. All tokens from WiomTokens.kt. All decisions from TDS_TCS_Spec_for_Dhruv.md</p>
+
+  <!-- ── Tabs ── -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('wallet')">Wallet Home</button>
+    <button class="tab-btn" onclick="switchTab('decisions')">Design Decisions</button>
+    <button class="tab-btn" onclick="switchTab('pipeline')">Payout Pipeline</button>
+    <button class="tab-btn" onclick="switchTab('edgecases')">Edge Cases</button>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════
+       TAB 1: WALLET HOME — scenario switcher + phone frame
+       ═══════════════════════════════════════════════════ -->
+  <div id="tab-wallet" class="tab-panel active">
+    <div class="chip-group">
+      <button class="chip active" onclick="setScenario('tds_normal')">TDS Normal (1% §194C)</button>
+      <button class="chip" onclick="setScenario('tds_below')">Below Threshold</button>
+      <button class="chip" onclick="setScenario('tds_no_pan')">No PAN (20%)</button>
+      <button class="chip" onclick="setScenario('tds_no_payout')">No Payout (deficit)</button>
+      <button class="chip" onclick="setScenario('tds_with_tcs')">TDS + TCS (2%+1%)</button>
+      <button class="chip" onclick="setScenario('tds_override')">§197 Override (0.5%)</button>
+    </div>
+
+    <div id="scenario-label" style="font: var(--body-small); color: var(--text-hint); margin-bottom: var(--md); text-align: center;">
+      Scenario: T-1 Normal payout with TDS — Individual CSP, §194C at 1%
+    </div>
+
+    <div class="phone-frame">
+      <!-- Top Bar -->
+      <div class="top-bar">
+        <span class="back-arrow">←</span>
+        <span class="title">वॉलेट</span>
+        <span class="debug-icon">🐛</span>
+      </div>
+
+      <div class="screen-body-wrapper">
+      <div class="screen-body">
+        <!-- ═══ Wallet Balance Card ═══ -->
+        <div class="wallet-card">
+          <div class="wallet-hero">
+            <div class="label-row">
+              <span class="icon">💼</span>
+              <span class="text">वॉलेट बैलेंस</span>
+            </div>
+            <div id="hero-amount" class="amount">₹12,640</div>
+            <div id="hero-sub" class="sub-label">निकाल सकते हैं</div>
+            <div id="hero-cta-area" style="margin-top: var(--xxl);">
+              <button class="cta-btn">निकालें</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ Running TDS Estimate (Spec §8A) ═══ -->
+        <div id="tds-estimate-block" class="tds-estimate">
+          <div class="est-row">
+            <span class="est-label">
+              <span class="info-icon">ℹ</span>
+              <span id="est-label-text">अनुमानित TDS (~1%)</span>
+            </span>
+            <span id="est-value" class="est-value">~₹42</span>
+          </div>
+          <!-- Section line (e.g. "§194C" or "§206AA") -->
+          <div id="est-section" style="font: var(--meta-xs); color: var(--text-hint); margin-top: 2px;"></div>
+          <div id="est-disclaimer" class="est-disclaimer">TDS cycle के अंत में काटा जाएगा। यह अनुमानित है — final amount cycle close पर तय होगा।</div>
+        </div>
+
+        <!-- ═══ Recent Activity Card ═══ -->
+        <div class="wallet-card">
+          <div class="card-header">
+            <span class="icon">📋</span>
+            <span class="card-title">हाल की गतिविधि</span>
+          </div>
+          <div class="recent-activity">
+            <div class="tx-row">
+              <div>
+                <div class="tx-label">बेस भुगतान</div>
+                <div class="tx-time">आज · 10:00 AM</div>
+              </div>
+              <span class="tx-amount credit">+₹300</span>
+            </div>
+            <div class="tx-row">
+              <div>
+                <div class="tx-label">बेस भुगतान</div>
+                <div class="tx-time">कल · 4:30 PM</div>
+              </div>
+              <span class="tx-amount credit">+₹250</span>
+            </div>
+          </div>
+          <div class="nav-footer">
+            <span class="link">सभी देखें ›</span>
+          </div>
+        </div>
+
+        <!-- ═══ Payout Summary Card (Spec §8B) ═══ -->
+        <div id="payout-card" class="wallet-card">
+          <div class="payout-header" onclick="togglePayout()">
+            <span class="icon">🧾</span>
+            <div class="titles">
+              <div class="main-title">कमाई का विवरण देखें</div>
+              <div id="payout-cycle" class="sub-title">1–15 मई 2026</div>
+            </div>
+            <span id="payout-amount" class="amount">₹4,158</span>
+            <span id="payout-chevron" class="chevron">▼</span>
+          </div>
+
+          <div id="payout-detail" class="payout-detail">
+            <!-- Gross Earnings Block -->
+            <div class="section-label">कुल कमाई (Gross)</div>
+            <div id="line-base" class="line-item">
+              <span class="label">बेस भुगतान</span>
+              <span class="value">₹3,500</span>
+            </div>
+            <div id="line-bonus" class="line-item">
+              <span class="label">बोनस</span>
+              <span class="value">₹700</span>
+            </div>
+            <div id="line-recovery" class="line-item" style="display:none;">
+              <span class="label">रिकवरी रिवॉर्ड</span>
+              <span class="value"></span>
+            </div>
+            <div id="gross-total" class="subtotal">
+              <span class="value">₹4,200</span>
+            </div>
+
+            <div style="height: var(--md);"></div>
+
+            <!-- Operational Adjustments Block -->
+            <div id="adj-section" class="section-label">समायोजन</div>
+            <div id="line-carry" class="line-item" style="display:none;">
+              <span class="label">कैरी शुल्क</span>
+              <span class="value deduction"></span>
+            </div>
+            <div id="line-liability" class="line-item" style="display:none;">
+              <span class="label">देयता वसूली</span>
+              <span class="value deduction"></span>
+            </div>
+            <div id="line-fpv" class="line-item" style="display:none;">
+              <span class="label">FPV कटौती</span>
+              <span class="value deduction"></span>
+            </div>
+            <div id="adj-total" class="subtotal">
+              <span class="value">₹0</span>
+            </div>
+
+            <hr class="payout-divider">
+
+            <!-- Net Payable -->
+            <div id="line-net-payable" class="line-item">
+              <span class="label bold">शुद्ध देय राशि</span>
+              <span class="value bold">₹4,200</span>
+            </div>
+
+            <div style="height: var(--md);"></div>
+
+            <!-- Statutory Tax Deduction -->
+            <div id="tax-section-label" class="section-label">वैधानिक कर कटौती</div>
+            <div id="line-tds" class="line-item">
+              <span class="label">TDS (1% u/s 194C)</span>
+              <span class="value deduction">-₹42</span>
+            </div>
+            <div id="line-tcs" class="line-item" style="display:none;">
+              <span class="label">TCS</span>
+              <span class="value deduction"></span>
+            </div>
+            <div id="below-threshold-line" class="line-item" style="display:none;">
+              <span class="label">TDS</span>
+              <span class="value below-threshold">सालाना सीमा से कम</span>
+            </div>
+
+            <!-- No-PAN Warning (inside expanded detail) -->
+            <div id="no-pan-warning" class="no-pan-warning" style="display:none;">
+              <span class="icon">⚠</span>
+              <span class="text">PAN उपलब्ध नहीं — 20% TDS लागू। PAN जमा करें → TDS दर कम होगी</span>
+            </div>
+
+            <hr class="payout-divider">
+
+            <!-- Net Credited -->
+            <div id="net-credited-row" class="net-credited-row">
+              <span class="label">आपके wallet में</span>
+              <span class="value">₹4,158</span>
+            </div>
+
+            <div id="statutory-explainer" class="statutory-explainer">
+              TDS सरकार को जमा होता है। यह आपकी income tax filing में credit मिलेगा।
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ No Payout Message (hidden by default) ═══ -->
+        <div id="no-payout-card" class="wallet-card" style="display:none;">
+          <div class="payout-header">
+            <span class="icon">🧾</span>
+            <div class="titles">
+              <div class="main-title">कमाई का विवरण देखें</div>
+              <div class="sub-title">16–30 अप्रैल 2026</div>
+            </div>
+            <span class="amount no-payout">भुगतान नहीं हुआ</span>
+            <span class="chevron">▼</span>
+          </div>
+        </div>
+
+        <!-- ═══ Deposit Card ═══ -->
+        <div class="wallet-card">
+          <div class="card-header">
+            <span class="icon">🏦</span>
+            <span class="card-title">सुरक्षा जमा</span>
+            <span id="deposit-balance" class="trailing">₹15,000</span>
+          </div>
+          <div style="height: var(--md);"></div>
+          <div class="kv-row">
+            <span class="label">जारी किए गए उपकरण</span>
+            <span id="deposit-devices" class="value">75</span>
+          </div>
+          <div class="nav-footer">
+            <span class="link">विवरण देखें ›</span>
+          </div>
+        </div>
+
+        <!-- ═══ Bank Card ═══ -->
+        <div class="wallet-card">
+          <div class="bank-info">
+            <span style="color: var(--text-secondary); font-size: 20px;">🏧</span>
+            <div class="details">
+              <div class="bank-name">HDFC Bank</div>
+              <div class="account-num">**** **** **** 6411</div>
+              <div class="holder-name">Annu Kumar</div>
+            </div>
+            <span class="bank-status">सक्रिय</span>
+          </div>
+          <div class="nav-footer">
+            <span class="link">बैंक विवरण ›</span>
+          </div>
+        </div>
+
+        <!-- ═══ Tax Summary Link (Spec §8D) ═══ -->
+        <div class="wallet-card" onclick="showTaxSummary()" style="cursor:pointer;">
+          <div class="tax-summary-link">
+            <span class="icon">🧾</span>
+            <span class="text">टैक्स सारांश देखें</span>
+            <span class="arrow">›</span>
+          </div>
+        </div>
+
+      </div><!-- end screen-body -->
+
+      <!-- ═══ Design Decisions Column (right side) ═══ -->
+      <div class="decisions-col">
+
+        <div class="annotation">
+          <div class="a-header"><span class="a-badge">1</span><span class="a-spec">§8C Rule 3 + §4</span></div>
+          <div class="a-text"><strong>Wallet Balance</strong> — Shows GROSS credits accumulated during the 15-day cycle. No TDS deducted on real-time entries (Rule 5: "₹35 credited. Period."). TDS is cycle-level, deducted only at bonus cycle end (§4).</div>
+        </div>
+
+        <div class="annotation">
+          <div class="a-header"><span class="a-badge">2</span><span class="a-spec">§8A</span></div>
+          <div class="a-text"><strong>Running TDS Estimate</strong> — "Light, non-intrusive indicator." Shows rate + estimated amount + section reference. Uses "अनुमानित" (estimated) clearly. Background changes per scenario: <strong>purple</strong> = normal, <strong>yellow</strong> = warning (no PAN / no payout), <strong>grey</strong> = below threshold, <strong>green</strong> = §197 override. Disappears after cycle close.</div>
+        </div>
+
+        <div class="annotation">
+          <div class="a-header"><span class="a-badge">3</span><span class="a-spec">§8C Rules 1 & 5</span></div>
+          <div class="a-text"><strong>Recent Activity</strong> — Shows GROSS amounts only. Rule 1: "NEVER show TDS as a separate transaction entry — '+₹3,600' then '-₹72 TDS' = punishment feeling." Rule 5: "NEVER show TDS on real-time credits." TDS only visible in Payout Summary card.</div>
+        </div>
+
+        <div class="annotation">
+          <div class="a-header"><span class="a-badge">4</span><span class="a-spec">§8B + §3 Pipeline</span></div>
+          <div class="a-text"><strong>Payout Summary</strong> — ONE card per cycle. Expand/collapse like WalletCard. Breakdown follows pipeline: Gross → Adjustments → Net Payable → TDS → Net Credited. TDS on its own line with section ref (Rule 4). Hindi explainer: "TDS सरकार को जमा होता है" — it's government, not Wiom. No-PAN: yellow warning (Edge 3). Below threshold: "₹0 सालाना सीमा से कम" (§8E).</div>
+        </div>
+
+        <div class="annotation">
+          <div class="a-header"><span class="a-badge">5</span><span class="a-spec">§8D</span></div>
+          <div class="a-text"><strong>Tax Summary Link</strong> — Opens annual FY overview, Form 16A download, quarterly breakdown, tax profile. Spec says: "Profile → Tax / Documents. Not in wallet feed." Added here for quick access. Card-style row per user feedback.</div>
+        </div>
+
+        <div class="annotation">
+          <div class="a-header"><span class="a-badge">6</span><span class="a-spec">§8C Rule 2</span></div>
+          <div class="a-text"><strong>Language & Wording</strong> — NEVER use "charge" or "fee" or "Wiom deduction" for TDS. It's statutory — government mandates it. All labels use "वैधानिक कर कटौती" (statutory tax deduction). Section number always visible: "CSP's CA will ask. Show it."</div>
+        </div>
+
+      </div><!-- end decisions-col -->
+
+      </div><!-- end screen-body-wrapper -->
+
+      <!-- ═══ Tax Summary Screen (overlays wallet home) ═══ -->
+      <div id="tax-summary-screen" class="tax-summary-screen">
+        <div class="top-bar">
+          <span class="back-arrow" onclick="hideTaxSummary()" style="cursor:pointer;">←</span>
+          <span class="title">टैक्स सारांश</span>
+        </div>
+
+        <div class="screen-body">
+          <!-- FY Overview Card -->
+          <div class="wallet-card">
+            <div class="card-header">
+              <span class="icon">🧾</span>
+              <span class="card-title">FY 2025-26</span>
+            </div>
+            <div style="height: var(--lg);"></div>
+            <div class="tax-row">
+              <span class="label">कुल भुगतान</span>
+              <span class="value">₹1,20,000</span>
+            </div>
+            <div style="height: var(--sm);"></div>
+            <div class="tax-row">
+              <span class="label">कुल TDS काटा</span>
+              <span class="value negative">₹2,400</span>
+            </div>
+            <div style="height: var(--sm);"></div>
+            <div class="tax-row">
+              <span class="label">धारा</span>
+              <span class="value">194C</span>
+            </div>
+            <div style="height: var(--sm);"></div>
+            <div class="tax-row">
+              <span class="label">Wiom TAN</span>
+              <span class="value">DELW12345E</span>
+            </div>
+          </div>
+
+          <!-- Form 16A Card -->
+          <div class="wallet-card">
+            <div class="card-header">
+              <span class="icon">📄</span>
+              <span class="card-title">Form 16A</span>
+            </div>
+            <div style="height: var(--md);"></div>
+            <p style="font: var(--body-small); color: var(--text-secondary); margin-bottom: var(--lg);">
+              यह certificate अपने CA को दें। Income tax return में TDS credit मिलेगा।
+            </p>
+            <button class="form16a-btn">
+              <span>⬇</span> Form 16A download करें
+            </button>
+          </div>
+
+          <!-- Quarterly Breakdown Card -->
+          <div class="wallet-card">
+            <div style="font: var(--title-sm); color: var(--text-primary); margin-bottom: var(--md);">तिमाही विवरण</div>
+            <div class="quarter-row">
+              <span class="label">Q1 (Apr-Jun)</span>
+              <span class="value">₹600</span>
+            </div>
+            <hr class="quarter-divider">
+            <div class="quarter-row">
+              <span class="label">Q2 (Jul-Sep)</span>
+              <span class="value">₹700</span>
+            </div>
+            <hr class="quarter-divider">
+            <div class="quarter-row">
+              <span class="label">Q3 (Oct-Dec)</span>
+              <span class="value">₹600</span>
+            </div>
+            <hr class="quarter-divider">
+            <div class="quarter-row">
+              <span class="label">Q4 (Jan-Mar)</span>
+              <span class="value">₹500</span>
+            </div>
+          </div>
+
+          <!-- Tax Profile Card -->
+          <div class="wallet-card">
+            <div style="font: var(--title-sm); color: var(--text-primary); margin-bottom: var(--md);">कर प्रोफ़ाइल</div>
+            <div class="tax-row">
+              <span class="label">इकाई प्रकार</span>
+              <span class="value">INDIVIDUAL</span>
+            </div>
+            <div style="height: var(--sm);"></div>
+            <div class="tax-row">
+              <span class="label">PAN</span>
+              <span class="value">ABCDE1234F</span>
+            </div>
+            <div style="height: var(--sm);"></div>
+            <div class="tax-row">
+              <span class="label">GST स्थिति</span>
+              <span class="value">NOT REGISTERED</span>
+            </div>
+            <div style="height: var(--sm);"></div>
+            <div class="tax-row">
+              <span class="label">TDS दर</span>
+              <span class="value">1%</span>
+            </div>
+          </div>
+        </div>
+      </div><!-- end tax-summary-screen -->
+
+    </div><!-- end phone-frame -->
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════
+       TAB 2: DESIGN DECISIONS
+       ═══════════════════════════════════════════════════ -->
+  <div id="tab-decisions" class="tab-panel">
+
+    <div class="doc-section">
+      <h3>How Every Design Decision Was Made</h3>
+      <p style="font: var(--body); color: var(--text-secondary); margin-bottom: var(--lg);">
+        Each UI element traces directly to the TDS/TCS spec document. Below is a simple explanation of what was built, why, and which section of the spec drove it.
+      </p>
+
+      <!-- Decision 1: Running TDS Estimate -->
+      <div class="decision-card">
+        <div class="d-title">1. Running TDS Estimate Banner</div>
+        <div class="d-spec">Spec §8A — "Running TDS estimate (between cycles)"</div>
+        <div class="d-body">
+          <strong>What it is:</strong> A small, light-colored banner below the wallet balance card showing the estimated TDS for the current 15-day cycle.<br><br>
+          <strong>Why it's there:</strong> The spec says CSP should always know roughly how much TDS will be deducted at cycle end, so there's no surprise. It uses the word "अनुमानित" (estimated) clearly — it's not final until the cycle closes.<br><br>
+          <strong>Design choices:</strong>
+          <ul style="margin: var(--sm) 0 0 var(--lg);">
+            <li><strong>bgSubtle (#F1EDF7) background</strong> — spec says "light, non-intrusive indicator". We use the app's subtle background color (not white card, not yellow warning).</li>
+            <li><strong>chip radius (8dp)</strong> — matches other inline banners in the app like BonusChip and InfoStrip.</li>
+            <li><strong>ℹ icon + bodySmall text</strong> — keeps it quiet. The hero balance amount above must retain visual primacy (same principle as StateBanner).</li>
+            <li><strong>Placed below wallet balance card</strong> — spec wireframe (§8A) shows it inside the wallet area, below "इस cycle की कमाई". User confirmed this placement.</li>
+          </ul>
+        </div>
+        <div class="spec-quote">
+          Spec quote: "Show as a light, non-intrusive indicator — not a deduction entry. Use 'अनुमानित' (estimated) clearly — this is not final until cycle close. Updates as CSP earns more during the cycle. Disappears after cycle close and TDS is actually deducted."
+        </div>
+      </div>
+
+      <!-- Decision 2: Payout Summary Card -->
+      <div class="decision-card">
+        <div class="d-title">2. Payout Summary Card (Expandable)</div>
+        <div class="d-spec">Spec §8B — "Payout summary card (at cycle close)"</div>
+        <div class="d-body">
+          <strong>What it is:</strong> A card that shows the complete earnings breakdown for the previous 15-day cycle. Collapsed by default — tap to expand and see the full gross → adjustments → TDS → net credited pipeline.<br><br>
+          <strong>Why it's expandable:</strong> User asked for "same experience as security deposit and wallet card — clicking opens a detailed view." The Deposit and Bank cards in the app use the WalletCard wrapper with expand/collapse pattern (AnimatedVisibility with chevron rotation). We matched this pattern exactly.<br><br>
+          <strong>Design choices:</strong>
+          <ul style="margin: var(--sm) 0 0 var(--lg);">
+            <li><strong>WalletCard wrapper</strong> — white surface + 1dp border + 12dp radius + 16dp padding. Same as every other card on the wallet home.</li>
+            <li><strong>Collapsed state: icon + title + amount + chevron</strong> — matches CardHeader pattern. Receipt (🧾) icon matches the tax context.</li>
+            <li><strong>Net credited in green (statePositive #008043)</strong> — this is money that went INTO the wallet. Positive.</li>
+            <li><strong>Expanded: four blocks</strong> — Gross Earnings → Operational Adjustments → Net Payable → Statutory Deduction → Net Credited. This exact ordering comes from spec §3 "Payout pipeline — the invariant".</li>
+          </ul>
+        </div>
+        <div class="spec-quote">
+          Spec quote: "ONE card per cycle. Not per transaction. Clean. Readable. One deduction moment."<br>
+          Spec §8C Rule 1: "NEVER show TDS as a separate wallet transaction entry. One card with breakdown."
+        </div>
+      </div>
+
+      <!-- Decision 3: Gross First -->
+      <div class="decision-card">
+        <div class="d-title">3. Gross Earnings Always Shown First</div>
+        <div class="d-spec">Spec §8B + §8C Rule 3</div>
+        <div class="d-body">
+          <strong>What it is:</strong> Inside the expanded payout card, the first block is always "कुल कमाई (Gross)" showing base payout + bonus + recovery rewards.<br><br>
+          <strong>Why:</strong> The spec is explicit — "Show GROSS first, always at the top. CSP must see what they earned before any deductions. Psychological anchor." And Rule 3: "NEVER deduct TDS before showing gross."<br><br>
+          <strong>Order is:</strong> Base payout → Bonus → Recovery rewards → Subtotal → Adjustments → Net Payable → TDS → Net Credited. This mirrors the payout pipeline (§3) step by step.
+        </div>
+      </div>
+
+      <!-- Decision 4: TDS on its own line -->
+      <div class="decision-card">
+        <div class="d-title">4. TDS/TCS on Separate Lines with Section Reference</div>
+        <div class="d-spec">Spec §8B Table + §8C Rules 2 & 4</div>
+        <div class="d-body">
+          <strong>What it is:</strong> TDS appears as its own labeled line: "TDS (1% u/s 194C)" with the amount in red (stateNegative).<br><br>
+          <strong>Why:</strong> Three spec rules drive this:
+          <ul style="margin: var(--sm) 0 0 var(--lg);">
+            <li><strong>Rule 2:</strong> "NEVER use 'charge' or 'fee' or 'Wiom deduction' for TDS." We call it "वैधानिक कर कटौती" (statutory tax deduction) — it's government-mandated.</li>
+            <li><strong>Rule 4:</strong> "NEVER hide TDS inside 'other adjustments'." Operational adjustments (carry fee, liability) are in a separate block from statutory deductions.</li>
+            <li><strong>Section number visible:</strong> "CSP's CA will ask. Show it." That's why we show "(1% u/s 194C)" or "(20% u/s 206AA)".</li>
+          </ul>
+          <strong>If TCS also applies</strong>, it gets its own separate line below TDS.
+        </div>
+      </div>
+
+      <!-- Decision 5: Hindi explainer -->
+      <div class="decision-card">
+        <div class="d-title">5. Hindi Explainer Text</div>
+        <div class="d-spec">Spec §8B — "One-line explainer in Hindi"</div>
+        <div class="d-body">
+          <strong>What it is:</strong> At the bottom of the expanded payout card: "TDS सरकार को जमा होता है। यह आपकी income tax filing में credit मिलेगा।"<br><br>
+          <strong>Why:</strong> The spec says this one line is critical — CSP must understand that TDS is not Wiom's charge, it goes to the government, and they get credit for it in their tax return. Without this, CSP may feel Wiom is taking their money.<br><br>
+          <strong>Design:</strong> Uses metaXs (10sp) in textHint (#A7A1B2) — the smallest, lightest text style in the app. It's information, not a call to action.
+        </div>
+      </div>
+
+      <!-- Decision 6: Tax Summary Link -->
+      <div class="decision-card">
+        <div class="d-title">6. Tax Summary Link Card</div>
+        <div class="d-spec">Spec §8D — "Annual tax summary (in Profile section)"</div>
+        <div class="d-body">
+          <strong>What it is:</strong> A simple card with a receipt icon + "टैक्स सारांश देखें" + chevron. Tapping opens the annual tax summary screen.<br><br>
+          <strong>Why it's a card-style row:</strong> User feedback — originally this was a WiomNavRow with pink (brandPrimary) text. User said "text should be in black and same size of other card." So we switched to titleSm (16sp Bold) in textPrimary (#161021) with a textSecondary chevron, matching the CardHeader pattern.<br><br>
+          <strong>Spec note:</strong> The spec says tax summary lives in "Profile section → Tax / Documents. Not in wallet feed." But for quick access during prototype testing, we added a link in the wallet home. The standalone Tax Summary screen (§8D) shows FY overview, Form 16A download, quarterly breakdown, and tax profile.
+        </div>
+      </div>
+
+      <!-- Decision 7: No-PAN Warning -->
+      <div class="decision-card">
+        <div class="d-title">7. No-PAN Warning Strip</div>
+        <div class="d-spec">Spec Edge 3 (§9) — "CSP has no PAN"</div>
+        <div class="d-body">
+          <strong>What it is:</strong> A yellow warning strip inside the expanded payout card when PAN is missing: "PAN उपलब्ध नहीं — 20% TDS लागू। PAN जमा करें → TDS दर कम होगी"<br><br>
+          <strong>Why:</strong> The spec says: "Section 206AA: TDS at 20% if PAN not furnished." And the CSP should see a prompt to submit PAN — "Strong incentive to provide PAN."<br><br>
+          <strong>Design:</strong> Uses bgWarning (#FFF2BF) background with stateWarning (#B85C00) icon — matches the LiabilityStrip pattern used elsewhere in the wallet. The warning sits inside the TDS section of the expanded card, right after the TDS line showing 20%.
+        </div>
+      </div>
+
+      <!-- Decision 8: Below Threshold -->
+      <div class="decision-card">
+        <div class="d-title">8. Below Threshold State</div>
+        <div class="d-spec">Spec §8E — "No-TDS state (below threshold)"</div>
+        <div class="d-body">
+          <strong>What it is:</strong> When annual cumulative payouts are below ₹30,000 (P_TDS_ANNUAL_THRESHOLD), TDS shows ₹0 with the message "सालाना सीमा से कम".<br><br>
+          <strong>Why:</strong> The spec says: "CSP knows TDS exists but doesn't apply to them yet. No surprise when they eventually cross the threshold." The running estimate also shows ₹0 with "threshold से नीचे".<br><br>
+          <strong>Design:</strong> No special styling — just regular bodySmall text. The full net payable is credited without any deduction. The payout card still shows the full breakdown so CSP sees their gross and adjustments.
+        </div>
+      </div>
+
+      <!-- Decision 9: Card pattern consistency -->
+      <div class="decision-card">
+        <div class="d-title">9. All Cards Follow the Same Pattern</div>
+        <div class="d-spec">Design system consistency (WalletComponents.kt)</div>
+        <div class="d-body">
+          <strong>What it is:</strong> Every card on the wallet home screen uses the same WalletCard wrapper — white background (#FFFFFF), 1dp border (#E8E4F0), 12dp corners, 16dp padding.<br><br>
+          <strong>Why:</strong> The wallet home has 5 cards (Balance, Recent Activity, Payout Summary, Deposit, Bank) + the Tax Summary link. User specifically asked for payout summary to "look like other cards like security deposit and wallet card." All cards use identical containers so the screen feels cohesive.<br><br>
+          <strong>Design tokens used (from WiomTokens.kt):</strong>
+          <ul style="margin: var(--sm) 0 0 var(--lg);">
+            <li>bgSurface = #FFFFFF (card background)</li>
+            <li>strokePrimary = #E8E4F0 (card border)</li>
+            <li>WiomRadius.card = 12dp (corner radius)</li>
+            <li>WiomElevation.cardBorderWidth = 1dp (border width)</li>
+            <li>WiomSpacing.cardPadding = 16dp (inner padding)</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Decision 10: No TDS in transaction entries -->
+      <div class="decision-card">
+        <div class="d-title">10. No TDS in Transaction Entries</div>
+        <div class="d-spec">Spec §8C Rule 1 + Rule 5</div>
+        <div class="d-body">
+          <strong>What it is:</strong> TDS never appears as a separate line in the Recent Activity / Ledger section.<br><br>
+          <strong>Why:</strong> Two rules:
+          <ul style="margin: var(--sm) 0 0 var(--lg);">
+            <li><strong>Rule 1:</strong> "NEVER show TDS as a separate wallet transaction entry. '+₹3,600 payout' then '-₹72 TDS' as two entries = punishment feeling. One card with breakdown."</li>
+            <li><strong>Rule 5:</strong> "NEVER show TDS on real-time credit entries. ₹35 credited. Period. No '-₹0.35 TDS.' TDS is cycle-level, not transaction-level."</li>
+          </ul>
+          <strong>How it works:</strong> Real-time credits show the gross amount. TDS is only visible in the cycle-end Payout Summary card as part of the full breakdown.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════
+       TAB 3: PAYOUT PIPELINE
+       ═══════════════════════════════════════════════════ -->
+  <div id="tab-pipeline" class="tab-panel">
+    <div class="doc-section">
+      <h3>Payout Pipeline — The Invariant (Spec §3)</h3>
+      <p style="font: var(--body); color: var(--text-secondary); margin-bottom: var(--lg);">
+        This ordering is non-negotiable. Every payout follows this sequence. The UI displays these steps in the same order inside the Payout Summary card.
+      </p>
+
+      <div class="pipeline-step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Gross Earnings (Compensation OS)</div>
+          <div class="step-desc">Base payout + bonus + recovery rewards = gross_earnings<br>
+          <em>UI: Top section of payout card — "कुल कमाई (Gross)"</em></div>
+        </div>
+      </div>
+
+      <div class="pipeline-step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Operational Adjustments (Compensation OS)</div>
+          <div class="step-desc">Carry fee + FPV deductions + liability recovery = operational_adjustments<br>
+          <em>UI: Second section — "समायोजन" — shown in red (stateNegative)</em></div>
+        </div>
+      </div>
+
+      <div class="pipeline-step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Net Payable Determined</div>
+          <div class="step-desc">= gross_earnings - operational_adjustments<br>
+          IF &le; 0: no payout this cycle. No TDS. Deficit carries forward. STOP.<br>
+          <em>UI: Bold line — "शुद्ध देय राशि"</em></div>
+        </div>
+      </div>
+
+      <div class="pipeline-step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-title">Threshold Check (Payment OS)</div>
+          <div class="step-desc">annual_cumulative + net_payable > ₹30,000?<br>
+          IF NO: no TDS this cycle. Full amount credited.<br>
+          <em>UI: Shows "TDS: ₹0 (सालाना सीमा से कम)"</em></div>
+        </div>
+      </div>
+
+      <div class="pipeline-step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <div class="step-title">Statutory Withholding (Payment OS)</div>
+          <div class="step-desc">tds_amount = net_payable × tds_rate<br>
+          tcs_amount = net_payable × tcs_rate (if applicable)<br>
+          <em>UI: "वैधानिक कर कटौती" section with TDS/TCS lines</em></div>
+        </div>
+      </div>
+
+      <div class="pipeline-step">
+        <div class="step-num">6</div>
+        <div class="step-body">
+          <div class="step-title">Disbursement (Payment OS)</div>
+          <div class="step-desc">net_credited = net_payable - total_withholding → credited to wallet<br>
+          <em>UI: Bottom line — "आपके wallet में" in green</em></div>
+        </div>
+      </div>
+
+      <div style="height: var(--lg);"></div>
+
+      <div class="spec-quote">
+        Spec §3: "Tax deduction NEVER comes before operational adjustments. If CSP earned ₹5,000 gross but ₹600 custody loss was recovered, taxable amount = ₹4,400. TDS on ₹4,400. Not on ₹5,000."
+      </div>
+
+      <div style="height: var(--xxl);"></div>
+
+      <h4>Design Invariants (Spec §8C) — What We Must NEVER Do</h4>
+      <table class="edge-case-table">
+        <thead>
+          <tr><th>#</th><th>Rule</th><th>Why</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>NEVER show TDS as a separate wallet transaction entry</td>
+            <td>"+₹3,600 payout" then "-₹72 TDS" as two entries = punishment feeling. One card with breakdown.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>NEVER use "charge" or "fee" or "Wiom deduction" for TDS</td>
+            <td>It's statutory. Government mandates it. Wiom is the collector, not the beneficiary.</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>NEVER deduct TDS before showing gross</td>
+            <td>Gross first. Always. CSP must see earnings before deductions.</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>NEVER hide TDS inside "other adjustments"</td>
+            <td>Statutory deductions must be a separate, labeled line. Transparency.</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>NEVER show TDS on real-time credit entries</td>
+            <td>₹35 credited. Period. No "-₹0.35 TDS." TDS is cycle-level, not transaction-level.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════
+       TAB 4: EDGE CASES
+       ═══════════════════════════════════════════════════ -->
+  <div id="tab-edgecases" class="tab-panel">
+    <div class="doc-section">
+      <h3>Edge Cases — Spec §9 + §16 Test Scenarios</h3>
+      <p style="font: var(--body); color: var(--text-secondary); margin-bottom: var(--lg);">
+        Every edge case from the spec has a corresponding mock JSON file and debug panel chip. Switch scenarios in the "Wallet Home" tab to see each one rendered.
+      </p>
+
+      <table class="edge-case-table">
+        <thead>
+          <tr>
+            <th>Scenario</th>
+            <th>Spec Ref</th>
+            <th>Mock JSON</th>
+            <th>What CSP Sees</th>
+            <th>Key Data Points</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>T-1: Normal TDS</strong></td>
+            <td>§16 T-1</td>
+            <td>home__tds_normal.json</td>
+            <td>Payout card shows full breakdown: ₹4,200 gross → ₹0 adjustments → ₹4,200 net payable → TDS 1% -₹42 → ₹4,158 credited. Running estimate shows ~₹42 (~1%).</td>
+            <td>Individual CSP, §194C, 1% rate, PAN verified, above threshold</td>
+          </tr>
+          <tr>
+            <td><strong>T-2: Below Threshold</strong></td>
+            <td>§8E + §16 T-2</td>
+            <td>home__tds_below_threshold.json</td>
+            <td>Payout card shows TDS: ₹0 with "सालाना सीमा से कम". Running estimate shows ₹0 (threshold से नीचे). Full ₹3,000 credited without deduction.</td>
+            <td>Annual cumulative ₹20K + this cycle ₹3K = ₹23K &lt; ₹30K threshold</td>
+          </tr>
+          <tr>
+            <td><strong>T-4: No PAN (20%)</strong></td>
+            <td>§9 Edge 3 + §16 T-4</td>
+            <td>home__tds_no_pan.json</td>
+            <td>Payout card: TDS 20% u/s 206AA = -₹720. Yellow warning strip: "PAN उपलब्ध नहीं — 20% TDS लागू। PAN जमा करें → TDS दर कम होगी". Running estimate shows ~₹720 (~20%).</td>
+            <td>Section 206AA, no PAN → statutory 20%, is_no_pan=true</td>
+          </tr>
+          <tr>
+            <td><strong>T-5: No Payout (deficit)</strong></td>
+            <td>§9 Edge 1 + §16 T-5</td>
+            <td>home__tds_no_payout.json</td>
+            <td>Payout card shows "भुगतान नहीं हुआ" instead of amount. No expand. Running estimate shows ₹0. Net payable is -₹700 (deficit carries forward).</td>
+            <td>₹3K gross - ₹3.7K liability recovery = -₹700. No TDS on negative.</td>
+          </tr>
+          <tr>
+            <td><strong>TDS + TCS</strong></td>
+            <td>§5 tcs_applicable</td>
+            <td>home__tds_with_tcs.json</td>
+            <td>Payout card: TDS 2% = -₹190 + TCS = -₹95 = total withholding -₹285. Two separate lines. Running estimate shows ~₹200 (~2%+TCS).</td>
+            <td>Company/LLP CSP, §194C at 2%, TCS at 1%, both on separate lines</td>
+          </tr>
+          <tr>
+            <td><strong>T-6: §197 Override (0.5%)</strong></td>
+            <td>§9 Edge 4 + §16 T-6</td>
+            <td>home__tds_override.json</td>
+            <td>Payout card: TDS 0.5% u/s 194C (u/s 197) = -₹21. Lower than standard rate. Running estimate shows ~₹18 (~0.5%).</td>
+            <td>Lower deduction certificate, valid until March 2027, 0.5% override</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div style="height: var(--xxl);"></div>
+
+      <h4>Debug Panel Integration</h4>
+      <div class="decision-card">
+        <div class="d-body">
+          <strong>How to test in the APK:</strong><br><br>
+          1. Open the wallet screen<br>
+          2. Tap the 🐛 (bug) icon in the top-right corner of the header<br>
+          3. Scroll to the "TDS / TCS Edge Cases" section<br>
+          4. Tap any chip — the app writes the scenario key to MockStateController (SharedPreferences), loads the corresponding JSON variant, and navigates back to wallet home<br>
+          5. The wallet reloads with the new data<br><br>
+          <strong>How it works under the hood:</strong><br>
+          <code>WalletDebugScreen</code> → <code>viewModel.applyWalletScenarioDebug("TDS_NORMAL")</code> → <code>debugBridge.set("walletState", "tds_normal")</code> → <code>MockStateController</code> persists to SharedPreferences → next <code>/wallet/home</code> request → <code>MockApiInterceptor</code> reads snapshot → serves <code>home__tds_normal.json</code>
+        </div>
+      </div>
+
+      <div style="height: var(--xxl);"></div>
+
+      <h4>Spec Coverage Checklist</h4>
+      <table class="edge-case-table">
+        <thead>
+          <tr><th>Spec Section</th><th>Requirement</th><th>How Covered</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>§3</td>
+            <td>Payout pipeline ordering invariant</td>
+            <td>Payout card displays blocks in exact pipeline order: Gross → Adjustments → Net Payable → TDS → Net Credited</td>
+          </tr>
+          <tr>
+            <td>§4</td>
+            <td>TDS aligned with 15-day bonus cycle</td>
+            <td>Payout card shows cycle label (e.g. "1–15 मई 2026"). One card per cycle. One deduction moment.</td>
+          </tr>
+          <tr>
+            <td>§5</td>
+            <td>Rate from CSP tax profile (entity type + section + PAN status)</td>
+            <td>Server-driven: rate_display, tds_section, is_no_pan come from mock JSON. UI renders what server sends — no client-side business logic.</td>
+          </tr>
+          <tr>
+            <td>§8A</td>
+            <td>Running TDS estimate between cycles</td>
+            <td>RunningTdsEstimate composable below wallet balance card. Shows estimate + rate + disclaimer.</td>
+          </tr>
+          <tr>
+            <td>§8B</td>
+            <td>Payout summary card at cycle close</td>
+            <td>PayoutSummaryCard with expand/collapse. Full breakdown matching spec wireframe.</td>
+          </tr>
+          <tr>
+            <td>§8C</td>
+            <td>5 design invariants (NEVER rules)</td>
+            <td>All 5 enforced — no TDS in transactions, no "fee/charge" wording, gross always first, TDS not hidden, no real-time TDS.</td>
+          </tr>
+          <tr>
+            <td>§8D</td>
+            <td>Annual tax summary screen</td>
+            <td>TaxSummaryScreen.kt with FY overview, quarterly breakdown, tax profile, Form 16A download. Link from wallet home.</td>
+          </tr>
+          <tr>
+            <td>§8E</td>
+            <td>Below-threshold state</td>
+            <td>Both running estimate and payout card show ₹0 TDS with "सालाना सीमा से कम" message.</td>
+          </tr>
+          <tr>
+            <td>Edge 1</td>
+            <td>Zero/negative payout</td>
+            <td>Payout card shows "भुगतान नहीं हुआ". No expand. No TDS computed on negative.</td>
+          </tr>
+          <tr>
+            <td>Edge 3</td>
+            <td>No PAN → 20% TDS</td>
+            <td>Yellow warning strip in payout card + "PAN जमा करें" prompt. is_no_pan flag drives visibility.</td>
+          </tr>
+          <tr>
+            <td>Edge 4</td>
+            <td>§197 lower deduction certificate</td>
+            <td>Rate override reflected in tds_rate_display and tds_section from server.</td>
+          </tr>
+          <tr>
+            <td>§8B UX Rules</td>
+            <td>Hindi labels for all payout items</td>
+            <td>All labels in wallet_labels_v1.2_hi_en.json: बेस भुगतान, बोनस, रिकवरी रिवॉर्ड, कैरी शुल्क, देयता वसूली, etc.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- end page-container -->
+
+<script>
+// ═══════════════════════════════════════════════════════
+// SCENARIO DATA — matches mock JSON files exactly
+// ═══════════════════════════════════════════════════════
+
+const scenarios = {
+  tds_normal: {
+    label: 'T-1: Normal payout with TDS — Individual CSP, §194C at 1%',
+    balance: '₹12,640',
+    balanceNeg: false,
+    subLabel: 'निकाल सकते हैं',
+    showCta: true,
+    estimate: { show: true, label: 'अनुमानित TDS (~1%)', value: '~₹42', section: 'u/s 194C · Individual', bgType: 'normal', disclaimer: 'TDS cycle के अंत में काटा जाएगा। यह अनुमानित है — final amount cycle close पर तय होगा।' },
+    payout: {
+      show: true,
+      noPayout: false,
+      cycle: '1–15 मई 2026',
+      netCredited: '₹4,158',
+      base: '₹3,500',
+      bonus: '₹700',
+      recovery: null,
+      gross: '₹4,200',
+      carry: null,
+      liability: null,
+      fpv: null,
+      adjTotal: '₹0',
+      netPayable: '₹4,200',
+      tdsLabel: 'TDS (1% u/s 194C)',
+      tdsAmount: '-₹42',
+      tcs: null,
+      belowThreshold: false,
+      isNoPan: false,
+      credited: '₹4,158',
+    },
+    deposit: '₹15,000',
+    devices: '75',
+  },
+  tds_below: {
+    label: 'T-2: Below threshold — annual cumulative < ₹30K, no TDS applied',
+    balance: '₹8,200',
+    balanceNeg: false,
+    subLabel: 'निकाल सकते हैं',
+    showCta: true,
+    estimate: { show: true, label: 'अनुमानित TDS (~1%)', value: '₹0 — सालाना सीमा से कम', section: 'u/s 194C · threshold ₹30,000 से नीचे', bgType: 'threshold', disclaimer: 'सालाना कुल भुगतान ₹30,000 से कम होने पर TDS नहीं काटा जाता। सीमा पार होने पर TDS लागू होगा।' },
+    payout: {
+      show: true,
+      noPayout: false,
+      cycle: '16–30 अप्रैल 2026',
+      netCredited: '₹3,000',
+      base: '₹2,500',
+      bonus: '₹500',
+      recovery: null,
+      gross: '₹3,000',
+      carry: null,
+      liability: null,
+      fpv: null,
+      adjTotal: '₹0',
+      netPayable: '₹3,000',
+      tdsLabel: null,
+      tdsAmount: null,
+      tcs: null,
+      belowThreshold: true,
+      isNoPan: false,
+      credited: '₹3,000',
+    },
+    deposit: '₹15,000',
+    devices: '75',
+  },
+  tds_no_pan: {
+    label: 'T-4: No PAN — §206AA forces 20% TDS rate',
+    balance: '₹9,880',
+    balanceNeg: false,
+    subLabel: 'निकाल सकते हैं',
+    showCta: true,
+    estimate: { show: true, label: 'अनुमानित TDS (~20%)', value: '~₹720', section: 'u/s 206AA · PAN उपलब्ध नहीं', bgType: 'warning', disclaimer: 'PAN न होने पर 20% TDS लागू है। PAN जमा करें → TDS दर कम होगी।' },
+    payout: {
+      show: true,
+      noPayout: false,
+      cycle: '16–30 अप्रैल 2026',
+      netCredited: '₹2,880',
+      base: '₹3,500',
+      bonus: '₹800',
+      recovery: '₹100',
+      gross: '₹4,400',
+      carry: '-₹200',
+      liability: '-₹600',
+      fpv: null,
+      adjTotal: '-₹800',
+      netPayable: '₹3,600',
+      tdsLabel: 'TDS (20% u/s 206AA)',
+      tdsAmount: '-₹720',
+      tcs: null,
+      belowThreshold: false,
+      isNoPan: true,
+      credited: '₹2,880',
+    },
+    deposit: '₹15,000',
+    devices: '75',
+  },
+  tds_no_payout: {
+    label: 'T-5: No payout — ₹3K gross but ₹3.7K liability recovery = deficit',
+    balance: '₹2,100',
+    balanceNeg: false,
+    subLabel: 'निकाल सकते हैं',
+    showCta: false,
+    estimate: { show: true, label: 'अनुमानित TDS (~2%)', value: '₹0', section: 'u/s 194C · बकाया समायोजन के कारण', bgType: 'warning', disclaimer: 'इस cycle में payout नहीं हुआ — बकाया समायोजन के कारण। कोई TDS नहीं।' },
+    payout: {
+      show: true,
+      noPayout: true,
+      cycle: '16–30 अप्रैल 2026',
+      netCredited: '₹0',
+      base: null,
+      bonus: null,
+      recovery: null,
+      gross: null,
+      carry: null,
+      liability: null,
+      fpv: null,
+      adjTotal: null,
+      netPayable: '-₹700',
+      tdsLabel: null,
+      tdsAmount: null,
+      tcs: null,
+      belowThreshold: false,
+      isNoPan: false,
+      credited: '₹0',
+    },
+    deposit: '₹15,000',
+    devices: '75',
+  },
+  tds_with_tcs: {
+    label: 'TDS + TCS — Company/LLP CSP, 2% TDS + 1% TCS',
+    balance: '₹18,400',
+    balanceNeg: false,
+    subLabel: 'निकाल सकते हैं',
+    showCta: true,
+    estimate: { show: true, label: 'अनुमानित TDS (~2%) + TCS (~1%)', value: '~₹200', section: 'u/s 194C · Company/LLP · TCS applicable', bgType: 'normal', disclaimer: 'TDS + TCS दोनों cycle के अंत में काटे जाएंगे। यह अनुमानित है — final amount cycle close पर तय होगा।' },
+    payout: {
+      show: true,
+      noPayout: false,
+      cycle: '16–30 अप्रैल 2026',
+      netCredited: '₹9,215',
+      base: '₹8,000',
+      bonus: '₹1,500',
+      recovery: '₹500',
+      gross: '₹10,000',
+      carry: '-₹300',
+      liability: null,
+      fpv: '-₹200',
+      adjTotal: '-₹500',
+      netPayable: '₹9,500',
+      tdsLabel: 'TDS (2% u/s 194C)',
+      tdsAmount: '-₹190',
+      tcs: '-₹95',
+      belowThreshold: false,
+      isNoPan: false,
+      credited: '₹9,215',
+    },
+    deposit: '₹17,500',
+    devices: '85',
+  },
+  tds_override: {
+    label: 'T-6: §197 override — lower deduction certificate at 0.5%',
+    balance: '₹14,382',
+    balanceNeg: false,
+    subLabel: 'निकाल सकते हैं',
+    showCta: true,
+    estimate: { show: true, label: 'अनुमानित TDS (~0.5%)', value: '~₹18', section: 'u/s 194C (u/s 197) · कम कटौती प्रमाणपत्र', bgType: 'positive', disclaimer: 'u/s 197 प्रमाणपत्र के तहत कम दर लागू। प्रमाणपत्र समाप्त होने पर मानक दर पर वापस आएगा।' },
+    payout: {
+      show: true,
+      noPayout: false,
+      cycle: '16–30 अप्रैल 2026',
+      netCredited: '₹4,179',
+      base: '₹3,500',
+      bonus: '₹800',
+      recovery: '₹100',
+      gross: '₹4,400',
+      carry: '-₹200',
+      liability: null,
+      fpv: null,
+      adjTotal: '-₹200',
+      netPayable: '₹4,200',
+      tdsLabel: 'TDS (0.5% u/s 194C · u/s 197)',
+      tdsAmount: '-₹21',
+      tcs: null,
+      belowThreshold: false,
+      isNoPan: false,
+      credited: '₹4,179',
+    },
+    deposit: '₹15,000',
+    devices: '75',
+  },
+};
+
+let currentScenario = 'tds_normal';
+let payoutExpanded = false;
+
+// ── Tax Summary Screen ──
+function showTaxSummary() {
+  // Hide wallet home content, show tax summary screen
+  document.querySelector('.phone-frame > .screen-body').style.display = 'none';
+  document.querySelector('.phone-frame > .top-bar').style.display = 'none';
+  document.getElementById('tax-summary-screen').classList.add('visible');
+}
+
+function hideTaxSummary() {
+  // Show wallet home content, hide tax summary screen
+  document.querySelector('.phone-frame > .screen-body').style.display = '';
+  document.querySelector('.phone-frame > .top-bar').style.display = '';
+  document.getElementById('tax-summary-screen').classList.remove('visible');
+}
+
+// ── Tab Switching ──
+function switchTab(tab) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ── Scenario Switching ──
+function setScenario(key) {
+  currentScenario = key;
+  payoutExpanded = false;
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  event.target.classList.add('active');
+  render();
+}
+
+// ── Payout Toggle ──
+function togglePayout() {
+  const s = scenarios[currentScenario];
+  if (s.payout.noPayout) return;
+  payoutExpanded = !payoutExpanded;
+  document.getElementById('payout-detail').classList.toggle('open', payoutExpanded);
+  document.getElementById('payout-chevron').classList.toggle('open', payoutExpanded);
+}
+
+// ── Render ──
+function render() {
+  const s = scenarios[currentScenario];
+
+  // Label
+  document.getElementById('scenario-label').textContent = 'Scenario: ' + s.label;
+
+  // Hero
+  const heroEl = document.getElementById('hero-amount');
+  heroEl.textContent = s.balance;
+  heroEl.className = 'amount' + (s.balanceNeg ? ' negative' : '');
+  document.getElementById('hero-sub').textContent = s.subLabel;
+  document.getElementById('hero-cta-area').style.display = s.showCta ? '' : 'none';
+
+  // TDS Estimate
+  const estBlock = document.getElementById('tds-estimate-block');
+  if (s.estimate.show) {
+    estBlock.style.display = '';
+    // Update background color based on scenario type
+    estBlock.classList.remove('bg-warning', 'bg-positive', 'bg-threshold');
+    if (s.estimate.bgType === 'warning') estBlock.classList.add('bg-warning');
+    else if (s.estimate.bgType === 'positive') estBlock.classList.add('bg-positive');
+    else if (s.estimate.bgType === 'threshold') estBlock.classList.add('bg-threshold');
+    // Update text content
+    document.getElementById('est-label-text').textContent = s.estimate.label;
+    document.getElementById('est-value').textContent = s.estimate.value;
+    document.getElementById('est-section').textContent = s.estimate.section || '';
+    document.getElementById('est-section').style.display = s.estimate.section ? '' : 'none';
+    document.getElementById('est-disclaimer').textContent = s.estimate.disclaimer;
+  } else {
+    estBlock.style.display = 'none';
+  }
+
+  // Payout card
+  const payoutCard = document.getElementById('payout-card');
+  const noPayoutCard = document.getElementById('no-payout-card');
+
+  if (s.payout.show && !s.payout.noPayout) {
+    payoutCard.style.display = '';
+    noPayoutCard.style.display = 'none';
+    document.getElementById('payout-cycle').textContent = s.payout.cycle;
+    document.getElementById('payout-amount').textContent = s.payout.netCredited;
+    document.getElementById('payout-amount').className = 'amount';
+
+    // Reset expand
+    document.getElementById('payout-detail').classList.remove('open');
+    document.getElementById('payout-chevron').classList.remove('open');
+
+    // Gross block
+    setLineItem('line-base', 'बेस भुगतान', s.payout.base);
+    setLineItem('line-bonus', 'बोनस', s.payout.bonus);
+    setOptionalLine('line-recovery', 'रिकवरी रिवॉर्ड', s.payout.recovery);
+    document.getElementById('gross-total').querySelector('.value').textContent = s.payout.gross;
+
+    // Adjustments
+    setOptionalLine('line-carry', 'कैरी शुल्क', s.payout.carry, true);
+    setOptionalLine('line-liability', 'देयता वसूली', s.payout.liability, true);
+    setOptionalLine('line-fpv', 'FPV कटौती', s.payout.fpv, true);
+    const adjTotalEl = document.getElementById('adj-total').querySelector('.value');
+    adjTotalEl.textContent = s.payout.adjTotal || '₹0';
+    adjTotalEl.className = 'value' + (s.payout.adjTotal && s.payout.adjTotal.startsWith('-') ? ' deduction' : '');
+
+    // Show/hide adjustment section
+    const hasAdj = s.payout.carry || s.payout.liability || s.payout.fpv;
+    document.getElementById('adj-section').style.display = hasAdj ? '' : 'none';
+    document.getElementById('adj-total').style.display = hasAdj ? '' : 'none';
+
+    // Net payable
+    document.getElementById('line-net-payable').querySelector('.value').textContent = s.payout.netPayable;
+
+    // TDS section
+    const tdsLine = document.getElementById('line-tds');
+    const tcsLine = document.getElementById('line-tcs');
+    const belowLine = document.getElementById('below-threshold-line');
+    const taxLabel = document.getElementById('tax-section-label');
+
+    if (s.payout.belowThreshold) {
+      tdsLine.style.display = 'none';
+      tcsLine.style.display = 'none';
+      belowLine.style.display = '';
+      taxLabel.style.display = 'none';
+    } else {
+      belowLine.style.display = 'none';
+      taxLabel.style.display = '';
+      if (s.payout.tdsLabel) {
+        tdsLine.style.display = '';
+        tdsLine.querySelector('.label').textContent = s.payout.tdsLabel;
+        tdsLine.querySelector('.value').textContent = s.payout.tdsAmount;
+      } else {
+        tdsLine.style.display = 'none';
+      }
+      if (s.payout.tcs) {
+        tcsLine.style.display = '';
+        tcsLine.querySelector('.value').textContent = s.payout.tcs;
+      } else {
+        tcsLine.style.display = 'none';
+      }
+    }
+
+    // No-PAN warning — inside expanded detail only
+    document.getElementById('no-pan-warning').style.display = s.payout.isNoPan ? '' : 'none';
+
+    // Net credited
+    document.getElementById('net-credited-row').querySelector('.value').textContent = s.payout.credited;
+
+  } else if (s.payout.noPayout) {
+    payoutCard.style.display = 'none';
+    noPayoutCard.style.display = '';
+  } else {
+    payoutCard.style.display = 'none';
+    noPayoutCard.style.display = 'none';
+  }
+
+  // Deposit
+  document.getElementById('deposit-balance').textContent = s.deposit;
+  document.getElementById('deposit-devices').textContent = s.devices;
+}
+
+function setLineItem(id, label, value) {
+  const el = document.getElementById(id);
+  if (!value) { el.style.display = 'none'; return; }
+  el.style.display = '';
+  el.querySelector('.label').textContent = label;
+  el.querySelector('.value').textContent = value;
+}
+
+function setOptionalLine(id, label, value, isDeduction) {
+  const el = document.getElementById(id);
+  if (!value) { el.style.display = 'none'; return; }
+  el.style.display = '';
+  el.querySelector('.label').textContent = label;
+  const valEl = el.querySelector('.value');
+  valEl.textContent = value;
+  valEl.className = 'value' + (isDeduction ? ' deduction' : '');
+}
+
+// Initial render
+render();
+</script>
+</body>
+</html>
