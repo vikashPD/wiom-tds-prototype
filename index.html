@@ -1887,15 +1887,13 @@ let payoutExpanded = false;
 
 // ── Tax Summary Screen ──
 function showTaxSummary() {
-  // Hide wallet home content, show tax summary screen
-  document.querySelector('.phone-frame > .screen-body').style.display = 'none';
+  document.querySelector('.screen-body-wrapper').style.display = 'none';
   document.querySelector('.phone-frame > .top-bar').style.display = 'none';
   document.getElementById('tax-summary-screen').classList.add('visible');
 }
 
 function hideTaxSummary() {
-  // Show wallet home content, hide tax summary screen
-  document.querySelector('.phone-frame > .screen-body').style.display = '';
+  document.querySelector('.screen-body-wrapper').style.display = '';
   document.querySelector('.phone-frame > .top-bar').style.display = '';
   document.getElementById('tax-summary-screen').classList.remove('visible');
 }
